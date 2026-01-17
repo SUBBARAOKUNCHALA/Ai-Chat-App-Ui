@@ -1,7 +1,7 @@
 import { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { login } from "../services/authService";
+import { login } from "../services/genralService";
 import { AuthContext } from "../context/AuthContext";
 
 export default function LoginPage() {

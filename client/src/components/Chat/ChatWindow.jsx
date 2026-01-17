@@ -1,8 +1,8 @@
 import { useContext, useState } from "react";
 import { ChatContext } from "../../context/ChatContext";
 import Message from "./Message";
-import { sendMessageAPI } from "../../services/chatService";
-import { aiChatAPI } from "../../services/aiService";
+import { aiChatAPI } from "../../services/genralService";
+import { sendMessageAPI } from "../../services/genralService";
 
 export default function ChatWindow({ authUser, receiver }) {
   const { messages, sendMessage } = useContext(ChatContext);
