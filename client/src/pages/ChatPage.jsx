@@ -1,26 +1,33 @@
 import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { ChatProvider } from "../context/ChatContext";
+// import { ChatProvider } from "../context/ChatContext";
 import UserList from "../components/Chat/UserList";
 import { fetchUsers } from "../services/genralService";
 import { motion } from "framer-motion";
 import { MessageCircle, Send } from "lucide-react";
 import { decryptData } from "../services/encryption";
 import { Bell } from "lucide-react";
-import { sendFriendRequestApi, fetchFriendRequestsApi,acceptFriendRequestApi } from "../services/genralService";
+import { toast } from "react-toastify";
+import ChatWindow from "../components/Chat/ChatWindow";
+import { ChatContext } from "../context/ChatContext";
+import { sendFriendRequestApi, fetchFriendRequestsApi, acceptFriendRequestApi, FriendsAvailableForLoginUser } from "../services/genralService";
 
 export default function ChatPage() {
   const { authUser } = useContext(AuthContext);
+  const { loadChat } = useContext(ChatContext);
 
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [friendRequests, setFriendRequests] = useState([]);
   const [showRequests, setShowRequests] = useState(false);
   const [friendReqCount, setFriendReqCount] = useState(0);
+  const [FriendsAvailable, setFriendsAvailable] = useState([])
+  const [filteredUsers, setFilteredUsers] = useState([]);
 
   const handleSendFriendRequest = async (receiverId) => {
     try {
       await sendFriendRequestApi(receiverId, authUser.token);
+      toast.success(res.message || "Friend request sent successfully");
 
       // Update UI instantly
       setUsers((prev) =>
@@ -32,9 +39,50 @@ export default function ChatPage() {
       );
 
     } catch (err) {
-      console.error("Friend request error:", err);
+      const errorMsg =
+        err?.response?.data?.message || "Something went wrong";
+
+      toast.warning(errorMsg);
+      //console.error("Friend request error:", err);
     }
   };
+
+  useEffect(() => {
+
+    if (users.length && FriendsAvailable.length) {
+
+      const friendIds = FriendsAvailable.map(f => f._id);
+
+      const result = users.filter(
+        u =>
+          !friendIds.includes(u._id) &&
+          u._id !== authUser._id
+      );
+
+      setFilteredUsers(result);
+    }
+
+  }, [users, FriendsAvailable]);
+
+  const friendSet = new Set(FriendsAvailable.map(f => f._id));
+
+  const nonFriends = users.filter(
+    u => !friendSet.has(u._id) && u._id !== authUser._id
+  );
+
+  useEffect(() => {
+    const LoadFriend = async () => {
+      try {
+        const Friends = await FriendsAvailableForLoginUser(authUser.token);
+        setFriendsAvailable(Friends)
+        console.log("Friends For Login User", Friends)
+      }
+      catch (err) {
+        console.log("Error Getting For Friends ", err)
+      }
+    };
+    LoadFriend()
+  }, [authUser])
 
   useEffect(() => {
 
@@ -52,24 +100,24 @@ export default function ChatPage() {
     loadFriendRequests();
 
   }, [authUser]);
-useEffect(() => {
+  useEffect(() => {
 
-  if (!showRequests) return;
+    if (!showRequests) return;
 
-  const loadRequests = async () => {
-    try {
-      const data = await fetchFriendRequestsApi(authUser.token);
+    const loadRequests = async () => {
+      try {
+        const data = await fetchFriendRequestsApi(authUser.token);
 
-      setFriendRequests(data);
+        setFriendRequests(data);
 
-    } catch (err) {
-      console.error("Load popup requests error", err);
-    }
-  };
+      } catch (err) {
+        console.error("Load popup requests error", err);
+      }
+    };
 
-  loadRequests();
+    loadRequests();
 
-}, [showRequests]);
+  }, [showRequests]);
 
   useEffect(() => {
     const getUsers = async () => {
@@ -88,7 +136,7 @@ useEffect(() => {
   }, [authUser]);
 
   return (
-    <ChatProvider authUser={authUser}>
+    // <ChatProvider authUser={authUser}>
       <div
         style={{
           minHeight: "100vh",
@@ -117,9 +165,13 @@ useEffect(() => {
           }}
         >
           <UserList
-            users={users}
-            selectUser={setSelectedUser}
-            selectedUser={selectedUser}
+            users={filteredUsers}
+            selectUser={(user) => {
+              setSelectedUser(user);
+              loadChat(user._id, authUser.token);
+            }}
+            nonFriends={nonFriends}
+            friends={FriendsAvailable}
             sendFriendRequest={handleSendFriendRequest}
           />
         </motion.div>
@@ -143,76 +195,77 @@ useEffect(() => {
             color: "#FFFFFF"
           }}
         >
-{/* ================= Friend Request Icon ================= */}
+          {/* ================= Friend Request Icon ================= */}
 
-<div
-  style={{
-    position: "fixed",
-    top: "20px",
-    right: "30px",
-    zIndex: 9999,
-  }}
->
+          <div
+            style={{
+              position: "fixed",
+              top: "20px",
+              right: "30px",
+              zIndex: 9999,
+            }}
+          >
 
-  <motion.div
-    whileHover={{ scale: 1.1 }}
-    whileTap={{ scale: 0.95 }}
-    onClick={() => setShowRequests(!showRequests)}
-    style={{
-      position: "relative",
-      cursor: "pointer",
-      background: "rgba(15,23,42,0.9)",
-      padding: "12px",
-      borderRadius: "14px",
-      border: "1px solid rgba(124,124,255,0.3)"
-    }}
-  >
-    <Bell color="#7C7CFF" />
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowRequests(!showRequests)}
+              style={{
+                position: "relative",
+                cursor: "pointer",
+                background: "rgba(15,23,42,0.9)",
+                padding: "12px",
+                borderRadius: "14px",
+                border: "1px solid rgba(124,124,255,0.3)"
+              }}
+            >
+              <Bell color="#7C7CFF" />
 
-    {/* COUNT BADGE */}
-    {friendReqCount > 0 && (
-      <span
-        style={{
-          position: "absolute",
-          top: "-6px",
-          right: "-6px",
-          background: "#EF4444",
-          color: "#fff",
-          borderRadius: "50%",
-          padding: "3px 7px",
-          fontSize: "11px",
-          fontWeight: "600",
-        }}
-      >
-        {friendReqCount}
-      </span>
-    )}
-  </motion.div>
+              {/* COUNT BADGE */}
+              {friendReqCount > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "-6px",
+                    right: "-6px",
+                    background: "#EF4444",
+                    color: "#fff",
+                    borderRadius: "50%",
+                    padding: "3px 7px",
+                    fontSize: "11px",
+                    fontWeight: "600",
+                  }}
+                >
+                  {friendReqCount}
+                </span>
+              )}
+            </motion.div>
 
-  {showRequests && (
-    <FriendRequestPopup
-      requests={friendRequests}
-      setRequests={setFriendRequests}
-      setCount={setFriendReqCount}
-      closePopup={() => setShowRequests(false)}
-      token={authUser.token}
-    />
-  )}
+            {showRequests && (
+              <FriendRequestPopup
+                requests={friendRequests}
+                setRequests={setFriendRequests}
+                setCount={setFriendReqCount}
+                closePopup={() => setShowRequests(false)}
+                token={authUser.token}
+              />
+            )}
 
-</div>
+          </div>
 
 
           {selectedUser ? (
-            <>
-              <ChatInput />
-            </>
+            <ChatWindow
+              authUser={authUser}
+              receiver={selectedUser}
+            />
           ) : (
             <EmptyChat />
           )}
         </motion.div>
 
       </div>
-    </ChatProvider>
+    // </ChatProvider>
   );
 }
 
@@ -267,73 +320,6 @@ function EmptyChat() {
    Chat Input Component
 =========================== */
 
-function ChatInput() {
-  const [message, setMessage] = useState("");
-
-  const handleSend = () => {
-    if (!message.trim()) return;
-    console.log("Sending message:", message);
-    setMessage("");
-  };
-
-  return (
-    <div
-      style={{
-        padding: "14px",
-        marginTop: '521px',
-        borderTop: "1px solid rgba(148,163,184,0.12)",
-        background: "rgba(2,6,23,0.9)",
-        backdropFilter: "blur(12px)",
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-      }}
-    >
-
-      {/* Input Box */}
-      <input
-        type="text"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Type your message..."
-        style={{
-          flex: 1,
-          background: "rgba(15,23,42,0.9)",
-          border: "1px solid rgba(124,124,255,0.25)",
-          borderRadius: "14px",
-          padding: "12px 16px",
-          color: "#FFFFFF",
-          outline: "none",
-          fontSize: "14px",
-          boxShadow: "inset 0 0 10px rgba(124,124,255,0.15)",
-        }}
-      />
-
-      {/* Send Button */}
-      <motion.button
-        whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={handleSend}
-        style={{
-          background:
-            "linear-gradient(135deg, #7C7CFF, #22D3EE)",
-          border: "none",
-          borderRadius: "14px",
-          padding: "12px 16px",
-          color: "#FFFFFF",
-          cursor: "pointer",
-          boxShadow: "0 8px 25px rgba(124,124,255,0.45)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Send size={18} />
-      </motion.button>
-
-    </div>
-  );
-}
 function FriendRequestPopup({
   requests,
   setRequests,
@@ -384,7 +370,7 @@ function FriendRequestPopup({
         </p>
 
         <button onClick={closePopup} style={closeBtnStyle}>
-          ✕
+          ✕selectUser
         </button>
       </div>
 

@@ -1,16 +1,13 @@
 import { motion } from "framer-motion";
 import { UserPlus, CheckCircle, Clock } from "lucide-react";
+import { decryptData } from "../../services/encryption";
 
 export default function UserList({
-  users,
+  friends,        // From /api/friends/my-friends
+  nonFriends,     // Filtered users list
   selectUser,
   sendFriendRequest,
 }) {
-
-  // ================= FILTER GROUPS =================
-
-  const friends = users.filter((u) => u.isFriend);
-  const addFriends = users.filter((u) => !u.isFriend);
 
   return (
     <div style={{ padding: "14px" }}>
@@ -40,11 +37,11 @@ export default function UserList({
 
       <SectionTitle title="Add Friends" />
 
-      {addFriends.length === 0 && (
+      {nonFriends.length === 0 && (
         <EmptyText text="No users available" />
       )}
 
-      {addFriends.map((u) => (
+      {nonFriends.map((u) => (
         <UserCard
           key={u._id}
           user={u}
@@ -57,7 +54,7 @@ export default function UserList({
 }
 
 /* ===========================
-     USER CARD
+        USER CARD
 =========================== */
 
 function UserCard({ user, onClick, sendFriendRequest, showChatIcon }) {
@@ -85,23 +82,25 @@ function UserCard({ user, onClick, sendFriendRequest, showChatIcon }) {
           {user.username}
         </p>
 
-        <span
+        {/* <span
           style={{
             fontSize: "12px",
-            color: user.isFriend ? "#22C55E" : "#94A3B8",
+            color: showChatIcon ? "#22C55E" : "#94A3B8",
           }}
         >
-          {/* {user.isFriend
+          {showChatIcon
             ? "Friend"
             : user.requestSent
             ? "Pending"
-            : "Not Friend"} */}
-        </span>
+            : "Not Friend"}
+        </span> */}
       </div>
 
       {/* ACTION ICONS */}
       <div>
-        {!user.isFriend && !user.requestSent && (
+
+        {/* ADD FRIEND BUTTON */}
+        {!showChatIcon && !user.requestSent && (
           <motion.button
             whileHover={{ scale: 1.2 }}
             whileTap={{ scale: 0.9 }}
@@ -115,20 +114,23 @@ function UserCard({ user, onClick, sendFriendRequest, showChatIcon }) {
           </motion.button>
         )}
 
+        {/* PENDING ICON */}
         {user.requestSent && (
           <Clock size={18} color="#FACC15" />
         )}
 
-        {user.isFriend && (
+        {/* FRIEND ICON */}
+        {showChatIcon && (
           <CheckCircle size={18} color="#22C55E" />
         )}
+
       </div>
     </motion.div>
   );
 }
 
 /* ===========================
-      UI HELPERS
+        UI HELPERS
 =========================== */
 
 function SectionTitle({ title }) {
@@ -177,7 +179,7 @@ function EmptyText({ text }) {
 }
 
 /* ===========================
-      ICON STYLE
+        ICON STYLE
 =========================== */
 
 const iconBtnStyle = {
