@@ -1,10 +1,11 @@
 import { useContext, useState, useEffect } from "react";
+import './ChatPage.css'
 import { AuthContext } from "../context/AuthContext";
 // import { ChatProvider } from "../context/ChatContext";
 import UserList from "../components/Chat/UserList";
 import { fetchUsers } from "../services/genralService";
 import { motion } from "framer-motion";
-import {MessageCircle, Send } from "lucide-react";
+import { MessageCircle, Send } from "lucide-react";
 import { decryptData } from "../services/encryption";
 import { Bell } from "lucide-react";
 import { toast } from "react-toastify";
@@ -45,7 +46,7 @@ export default function ChatPage() {
 
   const handleSendFriendRequest = async (receiverId) => {
     try {
-      await sendFriendRequestApi(receiverId, authUser.token);
+       const res=await sendFriendRequestApi(receiverId, authUser.token);
       toast.success(res.message || "Friend request sent successfully");
 
       // Update UI instantly
@@ -59,7 +60,7 @@ export default function ChatPage() {
 
     } catch (err) {
       const errorMsg =
-        err?.response?.data?.message || "Something went wrong";
+        err?.response?.data?.message
 
       toast.warning(errorMsg);
       //console.error("Friend request error:", err);
@@ -155,11 +156,11 @@ export default function ChatPage() {
   }, [authUser]);
 
 
-  function handleLogout(){
-  Logout()
-  navigate("/login");
+  function handleLogout() {
+    Logout()
+    navigate("/login");
   }
-  
+
 
   return (
     // <ChatProvider authUser={authUser}>
@@ -183,18 +184,20 @@ export default function ChatPage() {
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.45 }}
         style={{
-          width: isMobile ? "100%" : "280px",
-          height: isMobile ? "100%" : "auto",
-          display: isMobile && selectedUser ? "none" : "block",
+  width: isMobile ? "100%" : "280px",
+  height: "100%",
+  display: isMobile && selectedUser ? "none" : "flex",
+  flexDirection: "column",
 
-          borderRadius: "20px",
-          background: "rgba(15,23,42,0.92)",
-          border: "1px solid rgba(148,163,184,0.12)",
-          boxShadow: "0 15px 45px rgba(124,124,255,0.18)",
-          backdropFilter: "blur(14px)",
-          overflow: "hidden",
-          color: "#FFFFFF"
-        }}
+  borderRadius: "20px",
+  background: "rgba(15,23,42,0.92)",
+  border: "1px solid rgba(148,163,184,0.12)",
+  boxShadow: "0 15px 45px rgba(124,124,255,0.18)",
+  backdropFilter: "blur(14px)",
+
+  color: "#FFFFFF"
+}}
+
       >
         <UserList
           users={filteredUsers}
@@ -370,6 +373,7 @@ function FriendRequestPopup({
       const updated = requests.filter(r => r._id !== id);
 
       setRequests(updated);
+      
       setCount(updated.length);
 
     } catch (err) {
@@ -417,7 +421,7 @@ function FriendRequestPopup({
           </p>
 
           <button
-          onClick={onLogout}
+            onClick={onLogout}
             style={{
               color: "#EF4444",
               fontSize: "12px",
@@ -426,7 +430,7 @@ function FriendRequestPopup({
               cursor: "pointer",
               marginTop: "6px"
             }}
-            
+
           >
             Logout
           </button>

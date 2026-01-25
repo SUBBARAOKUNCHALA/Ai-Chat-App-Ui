@@ -9,12 +9,28 @@ export default function UserList({
   sendFriendRequest,
 }) {
 
-  return (
-    <div style={{ padding: "14px" }}>
+return (
+  <div
+    style={{
+      height: "100%",
+      display: "flex",
+      flexDirection: "column",
+      padding: "14px"
+    }}
+  >
 
-      {/* ================= FRIENDS ================= */}
+    {/* ================= FRIENDS ================= */}
 
-      <SectionTitle title="Friends" />
+    <SectionTitle title="Friends" />
+
+    <div
+      style={{
+        flex: 1,
+        overflowY: "auto",
+        paddingRight: "6px",
+        marginBottom: "10px"
+      }}
+    >
 
       {friends.length === 0 && (
         <EmptyText text="No friends yet" />
@@ -29,13 +45,21 @@ export default function UserList({
         />
       ))}
 
-      {/* ================= DIVIDER ================= */}
+    </div>
 
-      <Divider />
+    <Divider />
 
-      {/* ================= ADD FRIENDS ================= */}
+    {/* ================= ADD FRIENDS ================= */}
 
-      <SectionTitle title="Add Friends" />
+    <SectionTitle title="Add Friends" />
+
+    <div
+      style={{
+        flex: 1,
+        overflowY: "auto",
+        paddingRight: "6px"
+      }}
+    >
 
       {nonFriends.length === 0 && (
         <EmptyText text="No users available" />
@@ -50,7 +74,11 @@ export default function UserList({
       ))}
 
     </div>
-  );
+
+  </div>
+);
+
+
 }
 
 /* ===========================
