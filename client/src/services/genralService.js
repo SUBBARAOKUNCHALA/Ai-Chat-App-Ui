@@ -1,5 +1,6 @@
 import API from "./api";
 
+
 export const login = (data) => API.post("/api/auth/login", data);
 export const register = (data) => API.post("/api/auth/register", data);
 export const fetchUsers = (token) =>
@@ -77,3 +78,9 @@ export const fetchMessagesAPI = (userId, token) =>
   API.get(`/api/chat/${userId}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
+
+function Logout(){
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+}
+export default Logout

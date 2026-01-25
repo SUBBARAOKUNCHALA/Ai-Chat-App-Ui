@@ -44,3 +44,4 @@ export default function Message({ message, authUser }) {
     </div>
   );
 }
+

@@ -1,15 +1,14 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useRef, useEffect } from "react";
 import { ChatContext } from "../../context/ChatContext";
 import Message from "./Message";
 import { aiChatAPI, sendMessageAPI } from "../../services/genralService";
 import { motion } from "framer-motion";
-import { Send, X } from "lucide-react";
-import { useRef, useEffect } from "react";
+import { Send, X, ArrowLeft } from "lucide-react";
 
-
-export default function ChatWindow({ authUser, receiver }) {
+export default function ChatWindow({ authUser, receiver, goBack }) {
 
   const { messages, addLocalMessage } = useContext(ChatContext);
+
   const bottomRef = useRef(null);
 
   const [input, setInput] = useState("");
@@ -17,19 +16,25 @@ export default function ChatWindow({ authUser, receiver }) {
   const [showPopup, setShowPopup] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const isMobile = window.innerWidth < 768;
+
   // ======================
-  // MAIN SEND BUTTON CLICK
+  // AUTO SCROLL
   // ======================
 
-useEffect(() => {
-  bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-}, [messages]);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // ======================
+  // SEND BUTTON CLICK
+  // ======================
 
   const handleSendClick = async () => {
 
     if (!input.trim()) return;
 
-    // If chatting with AI directly → normal flow
+    // AI Direct Chat Mode
     if (receiver.username.toLowerCase() === "ai") {
       handleDirectAI();
       return;
@@ -38,21 +43,20 @@ useEffect(() => {
     try {
       setLoading(true);
 
-      // Call AI first
       const res = await aiChatAPI(input, authUser.token);
 
       setAiPreview(res.data.reply);
       setShowPopup(true);
 
     } catch (err) {
-      console.error("AI error:", err);
+      console.error("AI Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
   // ======================
-  // DIRECT AI CHAT MODE
+  // DIRECT AI CHAT
   // ======================
 
   const handleDirectAI = async () => {
@@ -112,50 +116,84 @@ useEffect(() => {
       setInput("");
 
     } catch (err) {
-      console.error("Send failed:", err.response?.data || err);
+      console.error("Send Failed:", err.response?.data || err);
     }
   };
 
+  // ======================
+  // BODY SCROLL LOCK (AI POPUP)
+  // ======================
+
+  useEffect(() => {
+
+    if (showPopup) {
+      document.body.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+
+  }, [showPopup]);
+
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <div style={container}>
+
+      {/* ================= HEADER ================= */}
+
+      <div style={header}>
+
+        {isMobile && (
+          <ArrowLeft
+            size={22}
+            onClick={goBack}
+            style={{ cursor: "pointer" }}
+          />
+        )}
+
+        <div>
+          <div style={username}>
+            {receiver.username}
+          </div>
+          <div style={status}>
+            Online
+          </div>
+        </div>
+
+      </div>
 
       {/* ================= CHAT MESSAGES ================= */}
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+      <div style={chatBody}>
 
-       {messages.map((msg, i) => (
-  <Message key={msg._id || i} message={msg} authUser={authUser} />
-))}
+        {messages.map((msg, i) => (
+          <Message
+            key={msg._id || i}
+            message={msg}
+            authUser={authUser}
+          />
+        ))}
 
-  <div ref={bottomRef} />
+        <div ref={bottomRef} />
+
       </div>
 
       {/* ================= INPUT BAR ================= */}
 
-      <div
-        style={{
-          padding: "14px",
-          borderTop: "1px solid rgba(148,163,184,0.12)",
-          display: "flex",
-          gap: "10px"
-        }}
-      >
+      <div style={inputBar}>
 
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type message..."
-          style={{
-            flex: 1,
-            padding: "12px",
-            borderRadius: "10px"
-          }}
+          placeholder="Type a message..."
+          style={inputStyle}
         />
 
         <motion.button
           onClick={sendFinalMessage}
           whileHover={{ scale: 1.05 }}
           style={sendBtn}
+          disabled={loading}
         >
           <Send size={18} />
         </motion.button>
@@ -164,6 +202,7 @@ useEffect(() => {
           onClick={handleSendClick}
           whileHover={{ scale: 1.05 }}
           style={aiBtn}
+          disabled={loading}
         >
           AI
         </motion.button>
@@ -173,6 +212,7 @@ useEffect(() => {
       {/* ================= AI POPUP ================= */}
 
       {showPopup && (
+
         <div style={overlayStyle}>
 
           <motion.div
@@ -181,7 +221,7 @@ useEffect(() => {
             style={popupStyle}
           >
 
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div style={popupHeader}>
               <h4>AI Suggested Message</h4>
 
               <X
@@ -195,7 +235,7 @@ useEffect(() => {
               {aiPreview}
             </div>
 
-            <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
+            <div style={popupBtns}>
 
               <button
                 onClick={() => setShowPopup(false)}
@@ -208,7 +248,7 @@ useEffect(() => {
                 onClick={takePromptToInput}
                 style={acceptBtn}
               >
-                Take Prompt Into Chat
+                Use Message
               </button>
 
             </div>
@@ -216,13 +256,67 @@ useEffect(() => {
           </motion.div>
 
         </div>
+
       )}
 
     </div>
   );
 }
 
-// ================= STYLES =================
+/* ================= STYLES ================= */
+
+const container = {
+  height: "100%",
+  display: "flex",
+  flexDirection: "column",
+  background: "#020617"
+};
+
+const header = {
+  height: "64px",
+  background: "#020617",
+  borderBottom: "1px solid rgba(148,163,184,0.12)",
+  padding: "0 16px",
+  display: "flex",
+  alignItems: "center",
+  gap: "12px"
+};
+
+const username = {
+  fontSize: "15px",
+  fontWeight: "600",
+  color: "#fff"
+};
+
+const status = {
+  fontSize: "12px",
+  color: "#22C55E"
+};
+
+const chatBody = {
+  flex: 1,
+  overflowY: "auto",
+  padding: "16px"
+};
+
+const inputBar = {
+  padding: "12px",
+  borderTop: "1px solid rgba(148,163,184,0.12)",
+  display: "flex",
+  gap: "10px",
+  background: "#020617",
+  position: "sticky",
+  bottom: 0
+};
+
+const inputStyle = {
+  flex: 1,
+  padding: "12px",
+  borderRadius: "10px",
+  border: "none",
+  outline: "none",
+  fontSize: "16px"
+};
 
 const sendBtn = {
   background: "#2563EB",
@@ -245,7 +339,7 @@ const aiBtn = {
 const overlayStyle = {
   position: "fixed",
   inset: 0,
-  background: "rgba(0,0,0,0.5)",
+  background: "rgba(0,0,0,0.6)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -254,10 +348,17 @@ const overlayStyle = {
 
 const popupStyle = {
   width: "380px",
+  maxWidth: "90%",
   background: "#0F172A",
   borderRadius: "14px",
   padding: "16px",
   color: "#fff"
+};
+
+const popupHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center"
 };
 
 const aiTextBox = {
@@ -268,6 +369,12 @@ const aiTextBox = {
   maxHeight: "180px",
   overflowY: "auto",
   marginTop: "10px"
+};
+
+const popupBtns = {
+  display: "flex",
+  gap: "10px",
+  marginTop: "12px"
 };
 
 const cancelBtn = {

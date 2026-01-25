@@ -4,17 +4,21 @@ import { AuthContext } from "../context/AuthContext";
 import UserList from "../components/Chat/UserList";
 import { fetchUsers } from "../services/genralService";
 import { motion } from "framer-motion";
-import { MessageCircle, Send } from "lucide-react";
+import {MessageCircle, Send } from "lucide-react";
 import { decryptData } from "../services/encryption";
 import { Bell } from "lucide-react";
 import { toast } from "react-toastify";
 import ChatWindow from "../components/Chat/ChatWindow";
 import { ChatContext } from "../context/ChatContext";
+import Logout from "../services/genralService";
+import { useNavigate } from "react-router-dom";
 import { sendFriendRequestApi, fetchFriendRequestsApi, acceptFriendRequestApi, FriendsAvailableForLoginUser } from "../services/genralService";
 
 export default function ChatPage() {
+  const navigate = useNavigate();
   const { authUser } = useContext(AuthContext);
   const { loadChat } = useContext(ChatContext);
+
 
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -23,6 +27,21 @@ export default function ChatPage() {
   const [friendReqCount, setFriendReqCount] = useState(0);
   const [FriendsAvailable, setFriendsAvailable] = useState([])
   const [filteredUsers, setFilteredUsers] = useState([]);
+
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
 
   const handleSendFriendRequest = async (receiverId) => {
     try {
@@ -135,136 +154,150 @@ export default function ChatPage() {
     getUsers();
   }, [authUser]);
 
+
+  function handleLogout(){
+  Logout()
+  navigate("/login");
+  }
+  
+
   return (
     // <ChatProvider authUser={authUser}>
-      <div
+    <div
+      style={{
+        height: "100vh",
+        background:
+          "radial-gradient(circle at top, #0B1226 0%, #050816 70%)",
+        display: "flex",
+        flexDirection: isMobile ? "column" : "row",
+        padding: isMobile ? "8px" : "16px",
+        overflow: "hidden"
+      }}
+    >
+
+
+      {/* ================= Sidebar ================= */}
+
+      <motion.div
+        initial={{ x: -60, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.45 }}
         style={{
-          minHeight: "100vh",
-          background:
-            "radial-gradient(circle at top, #0B1226 0%, #050816 70%)",
-          display: "flex",
-          padding: "16px",
+          width: isMobile ? "100%" : "280px",
+          height: isMobile ? "100%" : "auto",
+          display: isMobile && selectedUser ? "none" : "block",
+
+          borderRadius: "20px",
+          background: "rgba(15,23,42,0.92)",
+          border: "1px solid rgba(148,163,184,0.12)",
+          boxShadow: "0 15px 45px rgba(124,124,255,0.18)",
+          backdropFilter: "blur(14px)",
+          overflow: "hidden",
+          color: "#FFFFFF"
         }}
       >
+        <UserList
+          users={filteredUsers}
+          selectUser={(user) => {
+            setSelectedUser(user);
+            loadChat(user._id, authUser.token);
+          }}
+          nonFriends={nonFriends}
+          friends={FriendsAvailable}
+          sendFriendRequest={handleSendFriendRequest}
+        />
+      </motion.div>
 
-        {/* ================= Sidebar ================= */}
+      {/* ================= Chat Area ================= */}
 
-        <motion.div
-          initial={{ x: -60, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.45 }}
+      <motion.div
+        initial={{ opacity: 0, y: 25 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        style={{
+          flex: 1,
+          marginLeft: "16px",
+          borderRadius: "20px",
+          background: "rgba(15,23,42,0.92)",
+          border: "1px solid rgba(148,163,184,0.12)",
+          boxShadow: "0 15px 45px rgba(34,211,238,0.15)",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          color: "#FFFFFF"
+        }}
+      >
+        {/* ================= Friend Request Icon ================= */}
+
+        <div
           style={{
-            width: "300px",
-            borderRadius: "20px",
-            background: "rgba(15,23,42,0.92)",
-            border: "1px solid rgba(148,163,184,0.12)",
-            boxShadow: "0 15px 45px rgba(124,124,255,0.18)",
-            backdropFilter: "blur(14px)",
-            overflow: "hidden",
-            color: "#FFFFFF"
+            position: "fixed",
+            top: "20px",
+            right: "30px",
+            zIndex: 9999,
           }}
         >
-          <UserList
-            users={filteredUsers}
-            selectUser={(user) => {
-              setSelectedUser(user);
-              loadChat(user._id, authUser.token);
-            }}
-            nonFriends={nonFriends}
-            friends={FriendsAvailable}
-            sendFriendRequest={handleSendFriendRequest}
-          />
-        </motion.div>
 
-        {/* ================= Chat Area ================= */}
-
-        <motion.div
-          initial={{ opacity: 0, y: 25 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          style={{
-            flex: 1,
-            marginLeft: "16px",
-            borderRadius: "20px",
-            background: "rgba(15,23,42,0.92)",
-            border: "1px solid rgba(148,163,184,0.12)",
-            boxShadow: "0 15px 45px rgba(34,211,238,0.15)",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            color: "#FFFFFF"
-          }}
-        >
-          {/* ================= Friend Request Icon ================= */}
-
-          <div
+          <motion.div
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowRequests(!showRequests)}
             style={{
-              position: "fixed",
-              top: "20px",
-              right: "30px",
-              zIndex: 9999,
+              position: "relative",
+              cursor: "pointer",
+              background: "rgba(15,23,42,0.9)",
+              padding: "12px",
+              borderRadius: "14px",
+              border: "1px solid rgba(124,124,255,0.3)"
             }}
           >
+            <Bell color="#7C7CFF" />
 
-            <motion.div
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowRequests(!showRequests)}
-              style={{
-                position: "relative",
-                cursor: "pointer",
-                background: "rgba(15,23,42,0.9)",
-                padding: "12px",
-                borderRadius: "14px",
-                border: "1px solid rgba(124,124,255,0.3)"
-              }}
-            >
-              <Bell color="#7C7CFF" />
-
-              {/* COUNT BADGE */}
-              {friendReqCount > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: "-6px",
-                    right: "-6px",
-                    background: "#EF4444",
-                    color: "#fff",
-                    borderRadius: "50%",
-                    padding: "3px 7px",
-                    fontSize: "11px",
-                    fontWeight: "600",
-                  }}
-                >
-                  {friendReqCount}
-                </span>
-              )}
-            </motion.div>
-
-            {showRequests && (
-              <FriendRequestPopup
-                requests={friendRequests}
-                setRequests={setFriendRequests}
-                setCount={setFriendReqCount}
-                closePopup={() => setShowRequests(false)}
-                token={authUser.token}
-              />
+            {/* COUNT BADGE */}
+            {friendReqCount > 0 && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: "-6px",
+                  right: "-6px",
+                  background: "#EF4444",
+                  color: "#fff",
+                  borderRadius: "50%",
+                  padding: "3px 7px",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                }}
+              >
+                {friendReqCount}
+              </span>
             )}
+          </motion.div>
 
-          </div>
-
-
-          {selectedUser ? (
-            <ChatWindow
-              authUser={authUser}
-              receiver={selectedUser}
+          {showRequests && (
+            <FriendRequestPopup
+              requests={friendRequests}
+              setRequests={setFriendRequests}
+              setCount={setFriendReqCount}
+              closePopup={() => setShowRequests(false)}
+              token={authUser.token}
+              onLogout={handleLogout}
             />
-          ) : (
-            <EmptyChat />
           )}
-        </motion.div>
 
-      </div>
+        </div>
+
+
+        {selectedUser ? (
+          <ChatWindow
+            authUser={authUser}
+            receiver={selectedUser}
+          />
+        ) : (
+          <EmptyChat />
+        )}
+      </motion.div>
+
+    </div>
     // </ChatProvider>
   );
 }
@@ -325,7 +358,8 @@ function FriendRequestPopup({
   setRequests,
   setCount,
   closePopup,
-  token
+  token,
+  onLogout
 }) {
 
   const handleAccept = async (id) => {
@@ -369,16 +403,36 @@ function FriendRequestPopup({
           Friend Requests
         </p>
 
+
+
         <button onClick={closePopup} style={closeBtnStyle}>
           ✕selectUser
         </button>
       </div>
 
       {requests.length === 0 && (
-        <p style={{ color: "#94A3B8", fontSize: "12px" }}>
-          No new requests
-        </p>
+        <>
+          <p style={{ color: "#94A3B8", fontSize: "12px" }}>
+            No new requests
+          </p>
+
+          <button
+          onClick={onLogout}
+            style={{
+              color: "#EF4444",
+              fontSize: "12px",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              marginTop: "6px"
+            }}
+            
+          >
+            Logout
+          </button>
+        </>
       )}
+
 
       {requests.map(req => (
         <div
