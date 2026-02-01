@@ -50,6 +50,8 @@ export default function ChatWindow({ authUser, receiver, goBack }) {
 
     } catch (err) {
       console.error("AI Error:", err);
+      setAiPreview(err.response.data.message);
+      setShowPopup(true);
     } finally {
       setLoading(false);
     }
